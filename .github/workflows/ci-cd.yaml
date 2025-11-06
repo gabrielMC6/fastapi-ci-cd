@@ -20,13 +20,7 @@ jobs:
       with:
         python-version: '3.9'
     - run: pip install -r requirements.txt
-    - run: |
-        echo "=== INICIANDO DEBUG ==="
-        python -c "print('Python OK')"
-        python -c "import main; print('Import main OK')"
-        echo "=== CONTEÚDO DO MAIN.PY ==="
-        cat main.py
-        echo "=== FIM DEBUG ==="
+    - run: python -c "from main import app; print('API OK')"
 
   build-and-push:
     needs: test
@@ -54,12 +48,27 @@ jobs:
         repository: gabrielMC6/app-manifest
         token: ${{ secrets.GITHUB_TOKEN }}
         path: manifests
+        ref: main
+    
+    - name: Debug - Verificar estrutura
+      run: |
+        echo "=== ESTRUTURA DE ARQUIVOS ==="
+        find . -name "*.yaml" -o -name "*.yml" | head -20
+        echo "=== CONTEÚDO DA PASTA MANIFESTS ==="
+        ls -la manifests/ || echo "Pasta manifests não existe"
+        echo "=== FIM DEBUG ==="
+    
     - uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-    - run: |
+    
+    - name: Update image tag
+      run: |
         cd manifests
+        echo "=== CONTEÚDO DO DEPLOYMENT.YAML ==="
+        cat deployment.yaml || echo "Arquivo deployment.yaml não encontrado"
         sed -i 's|gabrieldemendoncacosta/hello-app:.*|gabrieldemendoncacosta/hello-app:${{ github.sha }}|' deployment.yaml
+    
     - uses: peter-evans/create-pull-request@v5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
