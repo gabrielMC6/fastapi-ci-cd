@@ -56,8 +56,9 @@ jobs:
     
     - uses: peter-evans/create-pull-request@v5
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.MANIFESTS_TOKEN }}
         path: manifests
         commit-message: "ci: update to ${{ github.sha }}"
         title: "New image: ${{ github.sha }}"
         branch: update-${{ github.sha }}
+        delete-branch: true
