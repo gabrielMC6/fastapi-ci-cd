@@ -1,0 +1,69 @@
+name: CI/CD Pipeline
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  IMAGE_NAME: hello-app
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - run: pip install -r requirements.txt
+    - run: |
+        echo "=== INICIANDO DEBUG ==="
+        python -c "print('Python OK')"
+        python -c "import main; print('Import main OK')"
+        echo "=== CONTEÚDO DO MAIN.PY ==="
+        cat main.py
+        echo "=== FIM DEBUG ==="
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  update-manifests:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: gabrielMC6/app-manifest
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: manifests
+    - uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+    - run: |
+        cd manifests
+        sed -i 's|gabrieldemendoncacosta/hello-app:.*|gabrieldemendoncacosta/hello-app:${{ github.sha }}|' deployment.yaml
+    - uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: manifests
+        commit-message: "ci: update to ${{ github.sha }}"
+        title: "New image: ${{ github.sha }}"
+        branch: update-${{ github.sha }}
