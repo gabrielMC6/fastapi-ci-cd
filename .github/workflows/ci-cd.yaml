@@ -49,14 +49,18 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         path: manifests
         ref: main
+        fetch-depth: 0
     
-    - name: Debug - Verificar estrutura
+    - name: Debug - Verificar TUDO
       run: |
-        echo "=== ESTRUTURA DE ARQUIVOS ==="
-        find . -name "*.yaml" -o -name "*.yml" | head -20
-        echo "=== CONTEÚDO DA PASTA MANIFESTS ==="
-        ls -la manifests/ || echo "Pasta manifests não existe"
-        echo "=== FIM DEBUG ==="
+        echo "=== CHECKOUT COMPLETO ==="
+        ls -la
+        echo "=== PASTA MANIFESTS ==="
+        ls -la manifests/
+        echo "=== ARQUIVOS YAML ==="
+        find . -name "*.yaml" -o -name "*.yml"
+        echo "=== CONTEÚDO DO DEPLOYMENT ==="
+        cat manifests/deployment.yaml || echo "NÃO ENCONTROU"
     
     - uses: webfactory/ssh-agent@v0.8.0
       with:
@@ -65,8 +69,6 @@ jobs:
     - name: Update image tag
       run: |
         cd manifests
-        echo "=== CONTEÚDO DO DEPLOYMENT.YAML ==="
-        cat deployment.yaml || echo "Arquivo deployment.yaml não encontrado"
         sed -i 's|gabrieldemendoncacosta/hello-app:.*|gabrieldemendoncacosta/hello-app:${{ github.sha }}|' deployment.yaml
     
     - uses: peter-evans/create-pull-request@v5
