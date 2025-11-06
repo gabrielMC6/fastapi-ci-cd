@@ -51,12 +51,7 @@ jobs:
     
     - name: Update image tag
       run: |
-        echo "=== LISTANDO ARQUIVOS ==="
-        ls -la
-        echo "=== ENTANDO NA PASTA MANIFESTS ==="
-        cd manifests
-        ls -la
-        echo "=== FAZENDO SUBSTITUIÇÃO ==="
+        cd manifests/manifests
         sed -i 's|gabrieldemendoncacosta/hello-app:.*|gabrieldemendoncacosta/hello-app:${{ github.sha }}|' deployment.yaml
     
     - uses: peter-evans/create-pull-request@v5
