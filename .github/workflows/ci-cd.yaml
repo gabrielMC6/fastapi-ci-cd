@@ -46,13 +46,9 @@ jobs:
     - uses: actions/checkout@v4
       with:
         repository: gabrielMC6/app-manifest
-        ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        token: ${{ secrets.MANIFESTS_TOKEN }}
         path: manifests
         ref: main
-    
-    - uses: webfactory/ssh-agent@v0.8.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
     
     - name: Update image tag
       run: |
@@ -61,7 +57,7 @@ jobs:
     
     - uses: peter-evans/create-pull-request@v5
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.MANIFESTS_TOKEN }}
         path: manifests
         commit-message: "ci: update to ${{ github.sha }}"
         title: "New image: ${{ github.sha }}"
