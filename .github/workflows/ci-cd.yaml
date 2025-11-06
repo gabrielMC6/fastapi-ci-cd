@@ -46,21 +46,9 @@ jobs:
     - uses: actions/checkout@v4
       with:
         repository: gabrielMC6/app-manifest
-        token: ${{ secrets.GITHUB_TOKEN }}
+        ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
         path: manifests
         ref: main
-        fetch-depth: 0
-    
-    - name: Debug - Verificar TUDO
-      run: |
-        echo "=== CHECKOUT COMPLETO ==="
-        ls -la
-        echo "=== PASTA MANIFESTS ==="
-        ls -la manifests/
-        echo "=== ARQUIVOS YAML ==="
-        find . -name "*.yaml" -o -name "*.yml"
-        echo "=== CONTEÚDO DO DEPLOYMENT ==="
-        cat manifests/deployment.yaml || echo "NÃO ENCONTROU"
     
     - uses: webfactory/ssh-agent@v0.8.0
       with:
