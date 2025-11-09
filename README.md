@@ -1,2 +1,1 @@
-# hello-app
-Pipeline CI/CD para FastAPI com Kubernetes e ArgoCD
+CI/CD com o GitHub Actions – Programa de Bolsas – DevSecOps
