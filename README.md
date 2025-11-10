@@ -151,7 +151,35 @@ Acessar o argocd pelo Localhost:8080.
 
 
 **configurar argoCD**
-<img width="941" height="395" alt="argohelloapp" src="https://github.com/user-attachments/assets/bbe1bda2-d6b3-4d42-9266-904401c84899" />
+<img width="941" height="395" alt="argohelloapp" src="https://github.com/user-attachments/assets/bbe1bda2-d6b3-4d42-9266-904401c84899" />   
+
+## Etapa 5 – Testes e Validação  
+
+Esta etapa teve como objetivo confirmar o funcionamento completo do pipeline **CI/CD** e garantir que a aplicação estivesse respondendo corretamente após o deploy no **Kubernetes**.  
+
+Com o **ArgoCD** sincronizado, foi realizado o redirecionamento de porta para acesso local ao serviço:  
+
+
+kubectl port-forward svc/hello-app-service 8081:80
+
+<img width="407" height="245" alt="jacareapi" src="https://github.com/user-attachments/assets/ebc09ec1-bcb2-48ef-9a91-61c42a117887" />
+
+**Atualizar main**
+
+
+<img width="578" height="398" alt="novomain" src="https://github.com/user-attachments/assets/2704ef9d-d3b0-4bd8-be1c-9a2c24a1cd16" />
+
+
+**Observar Workflow**
+
+
+
+<img width="671" height="203" alt="workflow" src="https://github.com/user-attachments/assets/8f62f7db-5aa4-4cb1-84c9-d2839963abfa" />
+
+
+**Depois de aprovar o pull request você deve dar refresh no argoCd e pronto**
+
+<img width="1322" height="203" alt="Captura de tela 2025-11-09 223641" src="https://github.com/user-attachments/assets/4c8a0ff2-4b17-4a89-81ca-33ce5ab2aec0" />
 
 
 
