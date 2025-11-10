@@ -1,72 +1,39 @@
-CI/CD com GitHub Actions – DevSecOps
+# CI/CD com o GitHub Actions – DevSecOps
 
-Aluno: Gabriel de Mendonça Costa
+## Objetivo
+Automatizar todo o ciclo de desenvolvimento, build e deploy de 
+uma aplicação FastAPI, usando GitHub Actions, Docker Hub e 
+ArgoCD em um ambiente Kubernetes local configurado com 
+Rancher Desktop.
 
-Objetivo
+## Pré-requisitos
+- Conta no GitHub (repositório público)
+- Conta no Docker Hub com token de acesso
+- Rancher Desktop com Kubernetes habilitado
+- kubectl configurado corretamente (kubectl get nodes)
+- ArgoCD instalado no cluster local
+- Git instalado
+- Python 3 e Docker instalados
 
-Automatizar todo o ciclo de desenvolvimento, build e deploy de uma aplicação FastAPI, usando GitHub Actions, Docker Hub e ArgoCD em um ambiente Kubernetes local com Rancher Desktop.
+---
 
-Pré-requisitos
+## Etapa 1 – Criação da aplicação e repositórios
 
-Conta no GitHub (repositório público)
+**Repositórios criados:**
+- **fastapi-ci-cd**: Aplicação + Dockerfile + GitHub Actions
+- **app-manifest**: Manifests Kubernetes para ArgoCD
 
-Conta no Docker Hub com token de acesso
+**Aplicação FastAPI (main.py):**
 
-Rancher Desktop com Kubernetes habilitado
+<img width="319" height="269" alt="JACARE" src="https://github.com/user-attachments/assets/5c8ed112-f2df-4140-848f-f264ba4ec89b" />
 
-kubectl configurado corretamente (kubectl get nodes)
+**dockerfile:**
+<img width="428" height="267" alt="dockerfile" src="https://github.com/user-attachments/assets/f8ec9927-c6bf-48ac-89bc-2b8a035f24dc" />
 
-ArgoCD instalado no cluster local
+**Etapa 2 – Configuração do pipeline no GitHub Actions**
+**Configuração dos Secrets**
 
-Git instalado
-
-Python 3 e Docker instalados
-
-Etapa 1 – Criação da aplicação e repositórios
-
-Foram criados dois repositórios públicos:
-
-fastapi-ci-cd: contém a aplicação, Dockerfile, requirements.txt e workflow do GitHub Actions.
-
-app-manifest: contém os arquivos de manifesto Kubernetes (deployment.yaml e service.yaml), monitorados pelo ArgoCD.
-
-Aplicação FastAPI (main.py)
-from fastapi import FastAPI
-
-app = FastAPI()
-
-@app.get("/")
-async def root():
-    return {"message": "jacare"}
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
-
-Dependências (requirements.txt)
-fastapi==0.104.1
-uvicorn==0.24.0
-
-Dockerfile
-FROM python:3.9-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY main.py .
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
-
-
-Teste local:
-Build: docker build -t fastapi-ci-cd:latest .
-Run: docker run -p 8000:80 fastapi-ci-cd
-Acesse: http://localhost:8000/ → {"message": "jacare"}
-
-Etapa 2 – Configuração do pipeline no GitHub Actions
-1. Configuração dos Secrets
-
-No repositório fastapi-ci-cd, adicione os seguintes Secrets:
+No repositório fastapi-ci-cd foram adicionados os seguintes secrets:
 
 DOCKER_USERNAME → usuário Docker Hub
 
@@ -74,20 +41,13 @@ DOCKER_PASSWORD → token Docker Hub
 
 MANIFESTS_TOKEN → token para gravar no repositório app-manifest
 
-SSH_PRIVATE_KEY → chave privada (opcional, caso use SSH)
+SSH_PRIVATE_KEY → chave privada
+<img width="941" height="422" alt="secrets" src="https://github.com/user-attachments/assets/7a706121-f649-4b5c-983a-e6b31f347515" />
 
-2. Workflow CI/CD
+**Criar Workflow:**
 
-O workflow .github/workflows/ci-cd.yaml automatiza:
-
-Testes da aplicação
-
-Build e push da imagem Docker
-
-Atualização dos manifests do ArgoCD
-
-Acionamento: a cada push na branch main.
-
+### Workflow – `.github/workflows/ci-cd.yaml`
+```yaml
 name: CI/CD Pipeline
 
 permissions:
@@ -102,8 +62,7 @@ env:
   IMAGE_NAME: hello-app
 
 jobs:
-  # Etapa 1: Testar aplicação
-  test:
+  test: # testa aplicação
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -113,8 +72,7 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -c "from main import app; print('API OK')"
 
-  # Etapa 2: Build e push da imagem Docker
-  build-and-push:
+  build-and-push: # build e push Docker
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -131,8 +89,7 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
             ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-  # Etapa 3: Atualização dos manifests
-  update-manifests:
+  update-manifests: # atualiza manifests ArgoCD
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
@@ -155,3 +112,48 @@ jobs:
           title: "New image: ${{ github.sha }}"
           branch: update-${{ github.sha }}
           delete-branch: true
+```
+
+### 3 – Manifests Kubernetes para ArgoCD
+
+**Objetivo:**  
+Criar os manifests de *Deployment*,*application* e *Service* no repositório `app-manifest` para que o ArgoCD sincronize o deploy automaticamente.
+
+**Arquivos criados em `app-manifest/manifests/`:**
+
+
+-<img width="295" height="295" alt="deploy" src="https://github.com/user-attachments/assets/ef400529-68c1-4933-824d-e6063e9540b3" />
+
+<img width="295" height="295" alt="aplica" src="https://github.com/user-attachments/assets/9056cf8f-07f9-4dbe-a327-f4cfa45faf5a" />
+
+<img width="239" height="262" alt="service" src="https://github.com/user-attachments/assets/0f0c029b-bf9d-47bb-ba54-cc8b20b83140" />
+
+
+
+Esses arquivos são a **fonte de verdade** que o ArgoCD monitora. O pipeline atualiza a tag no `deployment.yaml` e cria um PR; o ArgoCD aplica a alteração após o merge/sync.
+
+## Etapa 4 – Configuração do ArgoCD
+
+**Objetivo:**
+Instalar e configurar o ArgoCD no cluster Kubernetes para 
+automatizar o deploy baseado nos manifests do Git.
+
+**Instalação:**
+kubectl create namespace argocd
+
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# acessar interface:
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+Acessar o argocd pelo Localhost:8080.
+
+
+**configurar argoCD**
+<img width="941" height="395" alt="argohelloapp" src="https://github.com/user-attachments/assets/bbe1bda2-d6b3-4d42-9266-904401c84899" />
+
+
+
+
+
