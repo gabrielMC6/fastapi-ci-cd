@@ -54,6 +54,10 @@ DOCKER_PASSWORD → token de acesso do Docker Hub
 
 MANIFESTS_TOKEN → token de acesso para gravar no repositório app-manifest
 
+<img width="941" height="422" alt="secrets" src="https://github.com/user-attachments/assets/d94b68c4-82fe-4bcb-bd3e-f1b53917b288" />
+
+
+
 Com os secrets definidos, foi criado o workflow .github/workflows/ci-cd.yaml para automatizar testes, build da imagem Docker, publicação no Docker Hub e atualização dos manifests.
 
 O pipeline é acionado a cada push na branch main e dividido em três etapas principais:
@@ -64,72 +68,70 @@ Build e push da imagem: gera a imagem Docker e publica no Docker Hub usando os s
 
 Atualização dos manifests: acessa o repositório app-manifest e altera a tag da imagem no deployment.yaml, criando automaticamente um pull request com a nova versão.
 
-Workflow comentado:
-
-name: CI/CD Pipeline
+Workflow: name: CI/CD Pipeline
 
 permissions:
-  contents: write       # permite atualizar conteúdo do repo
-  pull-requests: write  # permite criar pull requests
+  contents: write
+  pull-requests: write
 
 on:
   push:
-    branches: [ main ]  # dispara a cada push na branch principal
+    branches: [ main ]
 
 env:
-  IMAGE_NAME: hello-app  # nome da imagem Docker
+  IMAGE_NAME: hello-app
 
 jobs:
-  # Testa a aplicação
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4   # pega o código
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - run: pip install -r requirements.txt
-      - run: python -c "from main import app; print('API OK')"
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - run: pip install -r requirements.txt
+    - run: python -c "from main import app; print('API OK')"
 
-  # Build e push da imagem Docker
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+    - uses: actions/checkout@v4
+    - uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-  # Atualiza os manifests do ArgoCD
   update-manifests:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: gabrielMC6/app-manifest  # repo de manifests
-          path: manifests
-          ref: main
-      - run: |
-          cd manifests/manifests
-          # atualiza a tag da imagem no deployment.yaml
-          sed -i 's|gabrielMC6/hello-app:.*|gabrielMC6/hello-app:${{ github.sha }}|' deployment.yaml
-      - uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.MANIFESTS_TOKEN }}  # token para gravar no repo
-          path: manifests
-          commit-message: "ci: update to ${{ github.sha }}"
-          title: "New image: ${{ github.sha }}"
-          branch: update-${{ github.sha }}
-          delete-branch: true
-<img width="941" height="422" alt="secrets" src="https://github.com/user-attachments/assets/fd840676-d300-4240-88e7-d16a6d5b848b" />
+    - uses: actions/checkout@v4
+      with:
+        repository: gabrielMC6/app-manifest
+        path: manifests
+        ref: main
+    
+    - name: Update image tag
+      run: |
+        cd manifests/manifests
+        sed -i 's|gabrieldemendoncacosta/hello-app:.*|gabrieldemendoncacosta/hello-app:${{ github.sha }}|' deployment.yaml
+    
+    - uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.MANIFESTS_TOKEN }}
+        path: manifests
+        commit-message: "ci: update to ${{ github.sha }}"
+        title: "New image: ${{ github.sha }}"
+        branch: update-${{ github.sha }}
+        delete-branch: true
+
+        
 
